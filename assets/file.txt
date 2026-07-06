@@ -1,0 +1,3 @@
+Hello from ML Learning!
+This is a sample text file.
+Python context managers are awesome.
