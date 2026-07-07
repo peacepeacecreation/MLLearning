@@ -1,8 +1,8 @@
-# MLLearning
+# Claude Mentor
 
 **A public learning system with a voice agent right in your terminal.**
 
-Universal method for learning hard technical subjects with an AI mentor — currently applied to ML engineering, but the structure works for any field: Rust, Kubernetes, systems design, anything with depth.
+Universal method for learning hard technical subjects with Claude Code as mentor. Currently applied to ML engineering as the demo track, but the structure works for any field: Rust, Kubernetes, systems design, anything with depth.
 
 ## How it works
 
