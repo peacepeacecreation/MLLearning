@@ -1,7 +1,7 @@
 [project]
 name = "voice-agent"
-version = "0.1.0"
-description = "Local voice interview agent — Pipecat + Daily transport, без pipecat-cloud"
+version = "0.2.0"
+description = "Local voice interview agent — Pipecat + Daily transport, з 'готово'-тригером і mute-filter self-echo"
 requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.104.1",

@@ -63,19 +63,24 @@ class DiagProcessor(FrameProcessor):
         super().__init__()
         self._audio_frames = 0
         self._audio_bytes = 0
+        self._peak = 0
         self._reporter_task = None
 
     async def _report_loop(self):
         while True:
             await asyncio.sleep(2.0)
             if self._audio_frames:
+                # Peak як частка від int16 max=32768 → 0..1 нормалізовано.
+                peak_norm = self._peak / 32768.0 if self._peak else 0.0
                 logger.info(
-                    f"[DIAG] audio: {self._audio_frames} frames, {self._audio_bytes} bytes / 2s"
+                    f"[DIAG] audio: {self._audio_frames} frames, "
+                    f"peak={peak_norm:.3f} (raw {self._peak})"
                 )
             else:
                 logger.warning("[DIAG] audio: 0 frames / 2s — мікрофон мовчить!")
             self._audio_frames = 0
             self._audio_bytes = 0
+            self._peak = 0
 
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
@@ -86,6 +91,14 @@ class DiagProcessor(FrameProcessor):
         if isinstance(frame, InputAudioRawFrame):
             self._audio_frames += 1
             self._audio_bytes += len(frame.audio)
+            # int16 little-endian: рахуємо peak amplitude.
+            import struct
+            n = len(frame.audio) // 2
+            if n:
+                samples = struct.unpack(f"<{n}h", frame.audio)
+                p = max(abs(s) for s in samples)
+                if p > self._peak:
+                    self._peak = p
         elif isinstance(frame, UserStartedSpeakingFrame):
             logger.info("[DIAG] 🎤 VAD: user STARTED speaking")
         elif isinstance(frame, UserStoppedSpeakingFrame):
@@ -100,6 +113,90 @@ class DiagProcessor(FrameProcessor):
             logger.info("[DIAG] 🔇 bot STOPPED speaking")
 
         await self.push_frame(frame, direction)
+
+
+class WaitForCompletionPhrase(FrameProcessor):
+    """User сам сигналізує кінець своєї черги словом «готово».
+    Дропає VAD-shape UserStoppedSpeakingFrame; емітить свій тільки після trigger-слова.
+    Trigger видаляється з тексту, який летить в LLM."""
+
+    TRIGGERS = ("готово", "готова", "готове")
+
+    def _strip_trigger(self, text: str) -> tuple[str, bool]:
+        lower = text.lower()
+        for t in self.TRIGGERS:
+            if t in lower:
+                idx = lower.rfind(t)
+                cleaned = (text[:idx] + text[idx + len(t):]).strip(" .,!?…")
+                return cleaned, True
+        return text, False
+
+    async def process_frame(self, frame: Frame, direction: FrameDirection):
+        await super().process_frame(frame, direction)
+
+        if isinstance(frame, TranscriptionFrame):
+            cleaned, triggered = self._strip_trigger(frame.text)
+            if triggered:
+                logger.info(f"[TRIGGER] 'готово' detected → flushing turn. clean={cleaned!r}")
+                if cleaned:
+                    new_frame = TranscriptionFrame(
+                        text=cleaned,
+                        user_id=frame.user_id,
+                        timestamp=frame.timestamp,
+                    )
+                    await self.push_frame(new_frame, direction)
+                await self.push_frame(UserStoppedSpeakingFrame(), direction)
+                return
+            # No trigger: forward transcript but suppress VAD-driven flush.
+            await self.push_frame(frame, direction)
+            return
+
+        if isinstance(frame, UserStoppedSpeakingFrame):
+            logger.info("[WAIT] suppressed VAD UserStoppedSpeakingFrame (чекаю 'готово')")
+            return
+
+        await self.push_frame(frame, direction)
+
+
+class MuteWhileBotSpeaking(FrameProcessor):
+    """Дропає user-speech / transcription frames поки бот говорить (+ 800ms хвіст).
+    Захист від self-echo коли мік чує колонки."""
+
+    HOLD_OFF_SEC = 0.8
+
+    def __init__(self):
+        super().__init__()
+        self._bot_speaking = False
+        self._bot_stopped_at = 0.0
+
+    def _muted(self) -> bool:
+        if self._bot_speaking:
+            return True
+        if self._bot_stopped_at and (asyncio.get_event_loop().time() - self._bot_stopped_at) < self.HOLD_OFF_SEC:
+            return True
+        return False
+
+    async def process_frame(self, frame: Frame, direction: FrameDirection):
+        await super().process_frame(frame, direction)
+
+        if isinstance(frame, BotStartedSpeakingFrame):
+            self._bot_speaking = True
+        elif isinstance(frame, BotStoppedSpeakingFrame):
+            self._bot_speaking = False
+            self._bot_stopped_at = asyncio.get_event_loop().time()
+
+        # Блокуємо user-side мовні події поки бот говорить (або хвіст).
+        if self._muted() and isinstance(frame, (
+            TranscriptionFrame,
+            InterimTranscriptionFrame,
+            UserStartedSpeakingFrame,
+            UserStoppedSpeakingFrame,
+        )):
+            logger.info(f"[MUTE] dropped {type(frame).__name__} (bot speaking)")
+            return
+
+        await self.push_frame(frame, direction)
+
 
 BOT_DIR = Path(__file__).parent.resolve()
 FLOWS_DIR = BOT_DIR / "flows"
@@ -122,10 +219,10 @@ async def run_cli(
             audio_out_enabled=True,
             audio_out_10ms_chunks=2,
             vad_analyzer=SileroVADAnalyzer(params=VADParams(
-                confidence=0.5,
-                min_volume=0.2,
+                confidence=0.3,
+                min_volume=0.05,
                 start_secs=0.15,
-                stop_secs=0.8,
+                stop_secs=2.0,
             )),
         )
     )
@@ -176,10 +273,14 @@ async def run_cli(
     collector.start_session(datetime.now(timezone.utc))
 
     diag = DiagProcessor()
+    mute = MuteWhileBotSpeaking()
+    wait_trigger = WaitForCompletionPhrase()
     pipeline = Pipeline([
         transport.input(),
         diag,
         stt,
+        mute,
+        wait_trigger,
         transcript_proc.user(),
         context_aggregator.user(),
         llm,
@@ -190,7 +291,7 @@ async def run_cli(
     ])
 
     task = PipelineTask(pipeline, params=PipelineParams(
-        allow_interruptions=True,
+        allow_interruptions=False,
         enable_metrics=True,
         enable_usage_metrics=True,
         report_only_initial_ttfb=True,
