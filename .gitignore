@@ -58,3 +58,32 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+
+# --- ML data --------------------------------------------------------
+# Dataset - велике, комітити через LFS або DVC якщо потрібно
+data/raw/
+data/processed/
+data/interim/
+*.parquet
+*.feather
+*.h5
+*.hdf5
+
+# --- ML models & checkpoints ----------------------------------------
+# Треновані моделі - бінарники
+models/
+checkpoints/
+*.pkl
+*.joblib
+*.pt
+*.pth
+*.onnx
+*.tflite
+*.safetensors
+
+# --- Experiment tracking --------------------------------------------
+mlruns/
+wandb/
+lightning_logs/
+tensorboard/
