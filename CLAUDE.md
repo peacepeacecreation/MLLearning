@@ -13,6 +13,7 @@
 - `memories/profile.md` — живий профіль знань учня. **Читати на початку кожної сесії** — щоб знати рівень і не повторювати пройдене.
 - `memories/lessons/` — детальні нотатки по кожному уроку у форматі `{фаза}-{урок}-{тема}.md` (фаза zero-padded до 2 знаків: `01-03-numpy.md`).
 - `code/phase-N/{NN}_{name}.py` — робочий код кожного уроку. Формат: `01_python_basics.py`, `02_type_hints.py`, `03_numpy.py`. Snake_case, номер = номер сесії з `PROGRESS.md`.
+- `notebooks/` — Jupyter-ноутбуки: інтерактивні EDA-звіти, портфоліо-артефакти. Запуск: `uv run jupyter lab` (браузер) або відкриття `.ipynb` у VS Code/Cursor (native kernel). Перед комітом: `Kernel → Restart Kernel and Run All Cells` щоб номери клітинок стали послідовні `[1]…[N]` — це і є reproducibility test. Експорт у HTML для портфоліо: `uv run jupyter nbconvert --to html notebooks/<name>.ipynb`.
 - `lessons/` — **ментор-шпаргалки з початкового плану ROADMAP** (моя внутрішня підготовка). **НЕ synced з реальними сесіями** — там 11 дрібних lesson-файлів, а реальні сесії агреговані (одна сесія покриває кілька тем). Використовувати як довідник тем, не як список номерів. Джерело істини про пройдене — `PROGRESS.md` + `memories/lessons/`, не `lessons/`.
 - `VOICE-TUTORIALS.md` — додаток про голосове закріплення (Feynman / retrieval / mock interview через локальний voice-agent). Читати перед `/end-lesson` — там правила про генерацію flow-файлів.
 
