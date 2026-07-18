@@ -1,8 +1,10 @@
 # PROGRESS
 
-**Поточна фаза:** Фаза 0 ✅ **completed** → **Фаза 2 первою**, Фаза 1 підключається за потребою
+**Поточна фаза:** Фаза 0 ✅ **completed** → Фаза 1 (математика) **в процесі**
 
-**Де зупинились:** усі 7 уроків Фази 0 пройдено. Наступний крок — **старт Фази 2 (класичний ML)**. Математика (Фаза 1) підключиться в контексті, коли знадобиться пояснити чому щось не збігається.
+**Рішення від 2026-07-18:** учень попросив спочатку пройти математику (Фазу 1) "на практиці", перш ніж повертатись до hands-on ML (Фаза 2). Це коригує попереднє рішення "Фаза 2 першою" — тимчасово міняємо порядок на прохання учня.
+
+**Де зупинились:** Фаза 1, Урок 01 (вектори, dot product, cosine similarity) — пройдено. Наступний крок — **Урок 02 (матриці як перетворення, множення, транспонування)**.
 
 **Рішення від 2026-07-13 (порядок фаз):** Фаза 2 первою, не паралельно. Причина: hands-on ML — найшвидший шлях до реального portfolio-об'єкта. Математика в вакуумі (3Blue1Brown без застосування) ризикує стати "перегляданням відео". Коли лінійна регресія не збігається — тоді відкриваємо градієнтний спуск; коли модель overfit-иться — тоді регуляризація і L1/L2 у контексті. Andrew Ng сам будував курс саме так.
 
@@ -71,6 +73,10 @@
 - **Урок 05** — matplotlib + seaborn + Pearson correlation + confounder problem ([docs](docs/phase-0-python/05-visualization.md), [memories](memories/lessons/01-05-visualization.md))
 - **Урок 06** — Jupyter workflow + Titanic EDA notebook ([docs](docs/phase-0-python/06-jupyter.md), [memories](memories/lessons/01-06-jupyter.md)). Артефакт: [`notebooks/titanic_eda.ipynb`](notebooks/titanic_eda.ipynb).
 - **Урок 07** — Git-for-ML: nbstripout, ML gitignore, LFS/branching (deferred to Фази 2 коли з'явиться реальна модель) ([docs](docs/phase-0-python/07-git-for-ml.md), [memories](memories/lessons/01-07-git-for-ml.md))
+
+## Пройдено — Фаза 1
+
+- **Урок 01** — Вектори, dot product, cosine similarity ([docs](docs/phase-1-math/01-vectors.md), [memories](memories/lessons/02-01-vectors.md), [код](code/phase-1/01_vectors.py))
 
 ## Portfolio-об'єкти (що народиться пізніше, природно)
 
