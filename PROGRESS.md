@@ -4,7 +4,7 @@
 
 **Рішення від 2026-07-18:** учень попросив спочатку пройти математику (Фазу 1) "на практиці", перш ніж повертатись до hands-on ML (Фаза 2). Це коригує попереднє рішення "Фаза 2 першою" — тимчасово міняємо порядок на прохання учня.
 
-**Де зупинились:** Фаза 1, Урок 03 (власні значення/вектори, eigenvalues) — пройдено. Наступний крок — **Урок 04 (похідні, часткові похідні, chain rule)**.
+**Де зупинились:** Фаза 1, Урок 04 (похідні, часткові похідні, градієнт, chain rule) — пройдено. Наступний крок — **Урок 05 (градієнтний спуск з нуля на NumPy)**.
 
 **Рішення від 2026-07-13 (порядок фаз):** Фаза 2 первою, не паралельно. Причина: hands-on ML — найшвидший шлях до реального portfolio-об'єкта. Математика в вакуумі (3Blue1Brown без застосування) ризикує стати "перегляданням відео". Коли лінійна регресія не збігається — тоді відкриваємо градієнтний спуск; коли модель overfit-иться — тоді регуляризація і L1/L2 у контексті. Andrew Ng сам будував курс саме так.
 
@@ -79,6 +79,7 @@
 - **Урок 01** — Вектори, dot product, cosine similarity ([docs](docs/phase-1-math/01-vectors.md), [memories](memories/lessons/02-01-vectors.md), [код](code/phase-1/01_vectors.py))
 - **Урок 02** — Матриці як перетворення, множення, некомутативність, transpose/inverse ([docs](docs/phase-1-math/02-matrices.md), [memories](memories/lessons/02-02-matrices.md), [код](code/phase-1/02_matrices.py), [візуалізація](code/phase-1/02b_matrices_viz.py))
 - **Урок 03** — Власні значення/вектори (eigenvalues/eigenvectors), звʼязок з PCA ([docs](docs/phase-1-math/03-eigen.md), [memories](memories/lessons/02-03-eigen.md), [код](code/phase-1/03_eigen.py), [візуалізація](code/phase-1/03b_eigen_viz.py))
+- **Урок 04** — Похідні, часткові похідні, градієнт, chain rule; вивів `∂L/∂w`, `∂L/∂b` для MSE ([docs](docs/phase-1-math/04-derivatives-gradients.md), [memories](memories/lessons/02-04-derivatives-gradients.md), [код](code/phase-1/04_derivatives.py))
 
 ## Portfolio-об'єкти (що народиться пізніше, природно)
 
