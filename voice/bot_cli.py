@@ -4,6 +4,9 @@
     uv run python bot_cli.py --flow tutor-ua_biological-neurons_medium
     uv run python bot_cli.py --system-prompt "Ти..." --lang uk
 
+За замовчуванням turn закривається тільки на слово "прийом" (VAD-пауза
+ігнорується). Додай --free-vad щоб повернути закриття по природній паузі.
+
 Транскрипт друкується у stdout у форматі:
     [USER] ...
     [ASSISTANT] ...
@@ -116,17 +119,24 @@ class DiagProcessor(FrameProcessor):
 
 
 class WaitForCompletionPhrase(FrameProcessor):
-    """Опційний швидкий turn-end через слово «прийом» (радіопротокольне «over»).
+    """Turn-end через слово «прийом» (радіопротокольне «over»).
 
-    VAD працює як зазвичай — паузи закривають turn природно. Тригер потрібен коли
-    юзер хоче достроково завершити без чекання stop_secs паузи.
+    Рішення 19.07.2026: за замовчуванням `require_trigger=True` — природний
+    VAD-based UserStoppedSpeakingFrame (пауза stop_secs) НЕ закриває turn сам
+    по собі, він дропається. Turn закривається ЛИШЕ коли юзер явно сказав
+    тригер-слово. Це усуває випадкове обривання думки на паузі.
 
-    Ключове: тригер ЛИШЕ **strip-ає** слово з transcription frame що йде далі.
-    Не suppress-ує VAD, не пробує сам форсити flush — цим займається aggregator
-    через свою нормальну реакцію на UserStoppedSpeakingFrame (VAD або тригер).
+    `require_trigger=False` повертає старий режим (VAD як зазвичай, тригер —
+    просто прискорювач "закінчити не чекаючи паузи") — вмикається прапорцем
+    `--free-vad` для сесій де це заважає (напр. Feynman-монолог з довгими
+    роздумами без бажання щоразу казати "прийом").
     """
 
     TRIGGERS = ("прийом", "прийома", "прийоми", "приом", "приьом")
+
+    def __init__(self, require_trigger: bool = True):
+        super().__init__()
+        self.require_trigger = require_trigger
 
     def _strip_trigger(self, text: str) -> tuple[str, bool]:
         lower = text.lower()
@@ -156,6 +166,11 @@ class WaitForCompletionPhrase(FrameProcessor):
                 await self.push_frame(UserStoppedSpeakingFrame(), direction)
                 return
             await self.push_frame(frame, direction)
+            return
+
+        if isinstance(frame, UserStoppedSpeakingFrame) and self.require_trigger:
+            # Природний VAD turn-end дропається — чекаємо явного тригера.
+            logger.info("[TRIGGER] VAD UserStoppedSpeakingFrame suppressed (waiting for 'прийом')")
             return
 
         await self.push_frame(frame, direction)
@@ -211,6 +226,7 @@ async def run_cli(
     language_mode: str,
     session_id: str,
     transcript_dir: str,
+    require_trigger: bool = True,
 ):
     logger.info(f"Session {session_id} [lang={language_mode}]")
 
@@ -277,7 +293,7 @@ async def run_cli(
 
     diag = DiagProcessor()
     mute = MuteWhileBotSpeaking()
-    wait_trigger = WaitForCompletionPhrase()
+    wait_trigger = WaitForCompletionPhrase(require_trigger=require_trigger)
     pipeline = Pipeline([
         transport.input(),
         diag,
@@ -328,6 +344,10 @@ def main():
     ap.add_argument("--lang", default="uk", choices=["uk", "multi"])
     ap.add_argument("--session-id", default=None)
     ap.add_argument("--transcript-dir", default=str(BOT_DIR / "transcripts"))
+    ap.add_argument(
+        "--free-vad", action="store_true",
+        help="Вимкнути обов'язковий тригер 'прийом' — VAD закриває turn як зазвичай на паузі.",
+    )
     args = ap.parse_args()
 
     if args.flow:
@@ -356,6 +376,7 @@ def main():
         language_mode=args.lang,
         session_id=session_id,
         transcript_dir=args.transcript_dir,
+        require_trigger=not args.free_vad,
     ))
 
 
